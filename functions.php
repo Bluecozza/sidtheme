@@ -14,6 +14,10 @@ function sidtheme_setup() {
     add_theme_support('custom-logo');
     add_theme_support('align-wide');
     add_theme_support('responsive-embeds');
+		// Aktifkan support untuk featured image
+    add_theme_support('post-thumbnails');
+	    // Tambahkan ukuran gambar kustom (opsional)
+    add_image_size('sidtheme-featured', 1200, 600, true); // 1200x600, crop center
 
     // Register menus
     register_nav_menus(array(
