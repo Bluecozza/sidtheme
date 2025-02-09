@@ -85,3 +85,37 @@ function sidtheme_entry_footer() {
         printf('<span class="tags-links">' . esc_html__('Tagged %1$s', 'sidtheme') . '</span>', $tags_list);
     }
 }
+
+// Register Footer Widget Areas
+function sidtheme_widgets_init() {
+    register_sidebar(array(
+        'name'          => __('Footer Widget Area 1', 'sidtheme'),
+        'id'            => 'footer-1',
+        'description'   => __('Add widgets here to appear in the first footer column.', 'sidtheme'),
+        'before_widget' => '<section id="%1$s" class="widget %2$s">',
+        'after_widget'  => '</section>',
+        'before_title'  => '<h4 class="widget-title">',
+        'after_title'   => '</h4>',
+    ));
+
+    register_sidebar(array(
+        'name'          => __('Footer Widget Area 2', 'sidtheme'),
+        'id'            => 'footer-2',
+        'description'   => __('Add widgets here to appear in the second footer column.', 'sidtheme'),
+        'before_widget' => '<section id="%1$s" class="widget %2$s">',
+        'after_widget'  => '</section>',
+        'before_title'  => '<h4 class="widget-title">',
+        'after_title'   => '</h4>',
+    ));
+
+    register_sidebar(array(
+        'name'          => __('Footer Widget Area 3', 'sidtheme'),
+        'id'            => 'footer-3',
+        'description'   => __('Add widgets here to appear in the third footer column.', 'sidtheme'),
+        'before_widget' => '<section id="%1$s" class="widget %2$s">',
+        'after_widget'  => '</section>',
+        'before_title'  => '<h4 class="widget-title">',
+        'after_title'   => '</h4>',
+    ));
+}
+add_action('widgets_init', 'sidtheme_widgets_init');

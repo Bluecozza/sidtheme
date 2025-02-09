@@ -7,13 +7,13 @@
 </head>
 <body <?php body_class(); ?>>
     <header class="site-header">
-        <div class="container">
-            <div class="logo">
+        <div class="header-container">
+            <div class="site-branding">
                 <?php
                 if (has_custom_logo()) {
                     the_custom_logo();
                 } else {
-                    echo '<a href="' . esc_url(home_url('/')) . '">' . get_bloginfo('name') . '</a>';
+                    echo '<a href="' . esc_url(home_url('/')) . '" class="site-title">' . get_bloginfo('name') . '</a>';
                 }
                 ?>
             </div>
@@ -22,6 +22,7 @@
                 wp_nav_menu(array(
                     'theme_location' => 'primary',
                     'menu_class'     => 'primary-menu',
+                    'container'      => false,
                 ));
                 ?>
             </nav>
