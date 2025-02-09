@@ -48,3 +48,40 @@ function sidtheme_sidurl_support() {
     }
 }
 add_action('init', 'sidtheme_sidurl_support');
+
+/////////////////
+// Add to functions.php
+function sidtheme_posted_on() {
+    $time_string = '<time class="entry-date published updated" datetime="%1$s">%2$s</time>';
+    printf(
+        '<span class="posted-on">%1$s <a href="%2$s" rel="bookmark">%3$s</a></span>',
+        esc_html__('Posted on', 'sidtheme'),
+        esc_url(get_permalink()),
+        esc_html(get_the_date())
+    );
+}
+
+function sidtheme_posted_by() {
+    printf(
+        '<span class="byline">%1$s <span class="author vcard"><a class="url fn n" href="%2$s">%3$s</a></span></span>',
+        esc_html__('by', 'sidtheme'),
+        esc_url(get_author_posts_url(get_the_author_meta('ID'))),
+        esc_html(get_the_author())
+    );
+}
+
+function sidtheme_entry_footer() {
+    // Kategori
+    if ('post' === get_post_type()) {
+        $categories_list = get_the_category_list(esc_html__(', ', 'sidtheme'));
+        if ($categories_list) {
+            printf('<span class="cat-links">' . esc_html__('Posted in %1$s', 'sidtheme') . '</span>', $categories_list);
+        }
+    }
+
+    // Tag
+    $tags_list = get_the_tag_list('', esc_html__(', ', 'sidtheme'));
+    if ($tags_list) {
+        printf('<span class="tags-links">' . esc_html__('Tagged %1$s', 'sidtheme') . '</span>', $tags_list);
+    }
+}
