@@ -1,0 +1,22 @@
+/* Admin Page Styles */
+.wrap h1 {
+    margin-bottom: 20px;
+}
+
+.notice {
+    margin: 20px 0;
+    padding: 15px;
+    border-left: 4px solid;
+}
+
+.notice.notice-success {
+    border-color: #46b450;
+}
+
+.notice.notice-info {
+    border-color: #00a0d2;
+}
+
+.button.button-primary {
+    margin-top: 10px;
+}

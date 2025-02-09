@@ -123,3 +123,131 @@ function sidtheme_widgets_init() {
     ));
 }
 add_action('widgets_init', 'sidtheme_widgets_init');
+
+// Tambahkan menu admin untuk update tema
+function sidtheme_admin_menu() {
+    add_theme_page(
+        'Sidtheme Updates', // Judul halaman
+        'Sidtheme Updates', // Judul menu
+        'manage_options',   // Capability
+        'sidtheme-updates', // Slug menu
+        'sidtheme_updates_page' // Fungsi callback
+    );
+}
+add_action('admin_menu', 'sidtheme_admin_menu');
+
+// Tampilan halaman update
+function sidtheme_updates_page() {
+    if (isset($_GET['action']) && $_GET['action'] === 'download-update') {
+        sidtheme_download_update();
+    }
+
+    $update_data = sidtheme_check_for_updates();
+    ?>
+    <div class="wrap">
+        <h1><?php _e('Sidtheme Updates', 'sidtheme'); ?></h1>
+        
+        <?php
+        if ($update_data['update_available']) {
+            echo '<div class="notice notice-success">';
+            echo '<p>' . sprintf(
+                __('Versi baru tersedia: <strong>%s</strong>.', 'sidtheme'),
+                $update_data['new_version']
+            ) . '</p>';
+            echo '<p><a href="' . esc_url(admin_url('themes.php?page=sidtheme-updates&action=download-update')) . '" class="button button-primary">' . __('Download dan Install Update', 'sidtheme') . '</a></p>';
+            echo '</div>';
+        } else {
+            echo '<div class="notice notice-info">';
+            echo '<p>' . __('Anda menggunakan versi terbaru.', 'sidtheme') . '</p>';
+            echo '</div>';
+        }
+        ?>
+    </div>
+    <?php
+}
+
+// Fungsi untuk cek update dari GitHub
+function sidtheme_check_for_updates() {
+    $theme_data = wp_get_theme();
+    $current_version = $theme_data->get('Version');
+    $github_url = 'https://api.github.com/repos/Bluecozza/sidtheme/releases/latest';
+
+    // Dapatkan data dari GitHub API
+    $response = wp_remote_get($github_url);
+
+    if (is_wp_error($response)) {
+        return array(
+            'update_available' => false,
+            'error' => $response->get_error_message()
+        );
+    }
+
+    $body = wp_remote_retrieve_body($response);
+    $data = json_decode($body, true);
+
+    if (empty($data) || !isset($data['tag_name'])) {
+        return array(
+            'update_available' => false,
+            'error' => __('Gagal memeriksa update.', 'sidtheme')
+        );
+    }
+
+    $new_version = ltrim($data['tag_name'], 'v'); // Hapus 'v' dari versi (jika ada)
+    $download_url = $data['zipball_url']; // URL download zip
+
+    return array(
+        'update_available' => version_compare($new_version, $current_version, '>'),
+        'new_version' => $new_version,
+        'download_url' => $download_url,
+        'current_version' => $current_version
+    );
+}
+
+function sidtheme_admin_styles() {
+    wp_enqueue_style(
+        'sidtheme-admin',
+        get_template_directory_uri() . '/assets/css/admin.css',
+        array(),
+        filemtime(get_template_directory() . '/assets/css/admin.css')
+    );
+}
+add_action('admin_enqueue_scripts', 'sidtheme_admin_styles');
+
+// Fungsi untuk download update
+function sidtheme_download_update() {
+    if (!current_user_can('manage_options')) {
+        wp_die(__('Anda tidak memiliki izin untuk melakukan ini.', 'sidtheme'));
+    }
+
+    $update_data = sidtheme_check_for_updates();
+
+    if (!$update_data['update_available']) {
+        wp_die(__('Tidak ada update yang tersedia.', 'sidtheme'));
+    }
+
+    $download_url = $update_data['download_url'];
+    $theme_slug = 'sidtheme';
+    $theme_path = get_theme_root() . '/' . $theme_slug;
+
+    // Download file zip
+    $zip_file = download_url($download_url);
+
+    if (is_wp_error($zip_file)) {
+        wp_die(__('Gagal mengunduh update.', 'sidtheme'));
+    }
+
+    // Ekstrak file zip
+    WP_Filesystem();
+    $unzip_result = unzip_file($zip_file, $theme_path);
+
+    if (is_wp_error($unzip_result)) {
+        wp_die(__('Gagal mengekstrak update.', 'sidtheme'));
+    }
+
+    // Hapus file zip
+    unlink($zip_file);
+
+    echo '<div class="notice notice-success">';
+    echo '<p>' . __('Update berhasil diinstal!', 'sidtheme') . '</p>';
+    echo '</div>';
+}
