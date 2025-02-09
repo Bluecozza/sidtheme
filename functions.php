@@ -139,6 +139,7 @@ add_action('admin_menu', 'sidtheme_admin_menu');
 // Tampilan halaman update
 function sidtheme_updates_page() {
     if (isset($_GET['action']) && $_GET['action'] === 'download-update') {
+        check_admin_referer('sidtheme_update_nonce'); // Verifikasi nonce
         sidtheme_download_update();
     }
 
@@ -154,8 +155,15 @@ function sidtheme_updates_page() {
                 __('Versi baru tersedia: <strong>%s</strong>.', 'sidtheme'),
                 $update_data['new_version']
             ) . '</p>';
-            echo '<p><a href="' . esc_url(admin_url('themes.php?page=sidtheme-updates&action=download-update')) . '" class="button button-primary">' . __('Download dan Install Update', 'sidtheme') . '</a></p>';
-            echo '</div>';
+///
+    // Tambahkan nonce ke URL download
+    $update_url = wp_nonce_url(
+        admin_url('themes.php?page=sidtheme-updates&action=download-update'),
+        'sidtheme_update_nonce'
+    );
+
+    echo '<p><a href="' . esc_url($update_url) . '" class="button button-primary">' . __('Download dan Install Update', 'sidtheme') . '</a></p>';
+///
         } else {
             echo '<div class="notice notice-info">';
             echo '<p>' . __('Anda menggunakan versi terbaru.', 'sidtheme') . '</p>';
@@ -213,11 +221,16 @@ function sidtheme_admin_styles() {
 }
 add_action('admin_enqueue_scripts', 'sidtheme_admin_styles');
 
-// Fungsi untuk download update
+
+// Fungsi untuk download dan install update
 function sidtheme_download_update() {
     if (!current_user_can('manage_options')) {
         wp_die(__('Anda tidak memiliki izin untuk melakukan ini.', 'sidtheme'));
     }
+
+    // Inisialisasi filesystem WordPress
+    WP_Filesystem();
+    global $wp_filesystem;
 
     $update_data = sidtheme_check_for_updates();
 
@@ -225,29 +238,74 @@ function sidtheme_download_update() {
         wp_die(__('Tidak ada update yang tersedia.', 'sidtheme'));
     }
 
-    $download_url = $update_data['download_url'];
+    // Path tema
     $theme_slug = 'sidtheme';
     $theme_path = get_theme_root() . '/' . $theme_slug;
-
+    
     // Download file zip
-    $zip_file = download_url($download_url);
-
-    if (is_wp_error($zip_file)) {
-        wp_die(__('Gagal mengunduh update.', 'sidtheme'));
+    $temp_zip = download_url($update_data['download_url']);
+    
+    if (is_wp_error($temp_zip)) {
+        wp_die(__('Gagal mengunduh file update: ', 'sidtheme') . $temp_zip->get_error_message());
     }
 
-    // Ekstrak file zip
-    WP_Filesystem();
-    $unzip_result = unzip_file($zip_file, $theme_path);
+    // Buat direktori temporary
+    $temp_dir = get_theme_root() . '/sidtheme-temp/';
+    
+    // Hapus direktori temp jika sudah ada
+    if ($wp_filesystem->exists($temp_dir)) {
+        $wp_filesystem->delete($temp_dir, true);
+    }
+    
+    // Buat direktori temp baru
+    if (!$wp_filesystem->mkdir($temp_dir)) {
+        wp_die(__('Gagal membuat direktori temporary.', 'sidtheme'));
+    }
 
+    // Ekstrak file zip ke temp dir
+    $unzip_result = unzip_file($temp_zip, $temp_dir);
+    
     if (is_wp_error($unzip_result)) {
-        wp_die(__('Gagal mengekstrak update.', 'sidtheme'));
+        $wp_filesystem->delete($temp_dir, true);
+        wp_die(__('Gagal mengekstrak file: ', 'sidtheme') . $unzip_result->get_error_message());
     }
 
-    // Hapus file zip
-    unlink($zip_file);
+    // Cari direktori hasil ekstraksi
+    $extracted_dirs = $wp_filesystem->dirlist($temp_dir);
+    $github_dir = '';
+    
+    foreach ($extracted_dirs as $dir) {
+        if ($dir['type'] == 'd' && strpos($dir['name'], 'Bluecozza-sidtheme') !== false) {
+            $github_dir = $temp_dir . $dir['name'] . '/';
+            break;
+        }
+    }
 
+    if (empty($github_dir)) {
+        $wp_filesystem->delete($temp_dir, true);
+        wp_die(__('Struktur direktori GitHub tidak dikenali.', 'sidtheme'));
+    }
+
+    // Hapus tema lama
+    if (!$wp_filesystem->delete($theme_path, true)) {
+        $wp_filesystem->delete($temp_dir, true);
+        wp_die(__('Gagal menghapus versi lama tema.', 'sidtheme'));
+    }
+
+    // Pindahkan file baru
+    $move_result = $wp_filesystem->move($github_dir, $theme_path, true);
+    
+    if (!$move_result) {
+        $wp_filesystem->delete($temp_dir, true);
+        wp_die(__('Gagal memindahkan file update.', 'sidtheme'));
+    }
+
+    // Bersihkan file temporary
+    $wp_filesystem->delete($temp_dir, true);
+    unlink($temp_zip);
+
+    // Tampilkan pesan sukses
     echo '<div class="notice notice-success">';
-    echo '<p>' . __('Update berhasil diinstal!', 'sidtheme') . '</p>';
+    echo '<p>' . __('Update berhasil diinstal! Silahkan refresh halaman.', 'sidtheme') . '</p>';
     echo '</div>';
 }
