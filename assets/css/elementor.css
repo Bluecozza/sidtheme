@@ -1,0 +1,10 @@
+/* Elementor Custom Styles */
+.elementor-page .site-main {
+    padding: 0;
+    margin: 0;
+    max-width: 100%;
+}
+
+.elementor-section {
+    margin-bottom: 0;
+}
